@@ -1,13 +1,194 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Kunci Kemenangan Indonesia</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fragment of Memory</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- CSS: Gaya Visual dan Efek Memori --- */
+        :root {
+            --color-text-primary: #EAEAEA; 
+            --color-background: #0D0D0D; 
+            --font-primary: 'Cormorant Garamond', serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: var(--color-background);
+            color: var(--color-text-primary);
+            font-family: var(--font-primary);
+            overflow: hidden; 
+        }
+
+        /* Efek Background Cahaya Gelap/Blur (Visualisasi Memori) */
+        .background-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* Radial gradient untuk cahaya samar dan blur untuk kesan memori */
+            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0.9) 80%);
+            filter: blur(5px);
+            z-index: 0;
+        }
+
+        .memory-container {
+            position: relative;
+            text-align: center;
+            z-index: 1; 
+            max-width: 90%;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: clamp(24px, 4vw, 60px); 
+            font-weight: 300; 
+            letter-spacing: 2px;
+            opacity: 0; 
+            transition: opacity 2s ease-in-out; /* Transisi muncul/hilang perlahan (2 detik) */
+            cursor: default;
+        }
+
+        /* Teks yang bisa dipencet */
+        .interactive-text {
+            cursor: pointer;
+        }
+
+        .interactive-text:hover {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Kelas untuk memunculkan elemen */
+        .visible {
+            opacity: 1;
+        }
+
+        /* Gaya untuk Prompt Akhir */
+        #final-prompt {
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+        }
+
+        #final-prompt p {
+            font-size: clamp(18px, 2.5vw, 40px);
+            font-weight: 400;
+        }
+
+        #deep-dive-btn {
+            background: transparent;
+            border: 1px solid var(--color-text-primary);
+            color: var(--color-text-primary);
+            padding: 10px 20px;
+            font-family: var(--font-primary);
+            font-size: clamp(14px, 1.5vw, 24px);
+            cursor: pointer;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+        }
+
+        #deep-dive-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+    </style>
 </head>
-<body style="display:flex;justify-content:center;align-items:center;height:100vh;background:#f8f9fa;">
-  <button onclick="window.open('https://youtu.be/7DFlyDYAt1c?si=PexOSRJ59lbjJUsD','_blank')" 
-          style="padding:20px 40px;font-size:20px;cursor:pointer;">
-    Kunci Kemenangan Indonesia
-  </button>
+<body>
+    <div class="background-overlay"></div>
+    
+    <div class="memory-container">
+        <h1 id="text1" class="hidden interactive-text">
+            do you want to go deeper?
+        </h1>
+        
+        <h1 id="text2" class="hidden">
+            we've been together for 3 years and 28 day(s)
+        </h1>
+        
+        <h1 id="text3" class="hidden">
+            it's the same as 1,617,120 minutes and 97,027,200 seconds
+        </h1>
+
+        <div id="final-prompt" class="hidden">
+            <p>want to know about us? press this button</p>
+            <button id="deep-dive-btn">Deep Dive</button>
+        </div>
+    </div>
+
+    <script>
+        // --- JAVASCRIPT: Logika Timing dan Urutan ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const text1 = document.getElementById('text1');
+            const text2 = document.getElementById('text2');
+            const text3 = document.getElementById('text3');
+            const finalPrompt = document.getElementById('final-prompt');
+            
+            const TRANSITION_TIME = 2000; // 2 detik (sesuai CSS transition)
+
+            // Teks 1 muncul (setelah 5 detik)
+            setTimeout(() => {
+                text1.classList.add('visible');
+            }, 5000); 
+            
+            // Listener untuk Teks 1
+            text1.addEventListener('click', () => {
+                // Hilangkan Teks 1
+                text1.classList.remove('visible');
+
+                // Tunggu transisi hilang
+                setTimeout(() => {
+                    text1.style.display = 'none';
+
+                    // Teks 2 muncul
+                    text2.classList.add('visible');
+
+                    // Teks 2 menghilang (setelah 10 detik tampil)
+                    setTimeout(() => {
+                        text2.classList.remove('visible');
+
+                        // Tunggu transisi hilang
+                        setTimeout(() => {
+                            text2.style.display = 'none';
+
+                            // Teks 3 muncul
+                            text3.classList.add('visible');
+
+                            // Teks 3 menghilang (setelah 16 detik tampil)
+                            setTimeout(() => {
+                                text3.classList.remove('visible');
+
+                                // Tunggu transisi hilang, lalu munculkan Prompt Akhir
+                                setTimeout(() => {
+                                    text3.style.display = 'none';
+
+                                    // Prompt Akhir muncul
+                                    finalPrompt.classList.add('visible');
+                                    
+                                }, TRANSITION_TIME); // Waktu transisi hilang Teks 3
+
+                            }, 16000); // Durasi Teks 3 tampil (16 detik)
+
+                        }, TRANSITION_TIME); // Waktu transisi hilang Teks 2
+
+                    }, 10000); // Durasi Teks 2 tampil (10 detik)
+
+                }, TRANSITION_TIME); // Waktu transisi hilang Teks 1
+            });
+            
+            // Anda bisa tambahkan listener untuk 'deep-dive-btn' di sini jika sudah ada halaman tujuan:
+            // document.getElementById('deep-dive-btn').addEventListener('click', () => {
+            //     window.location.href = "halaman-memori-selanjutnya.html";
+            // });
+
+        });
+    </script>
 </body>
 </html>
