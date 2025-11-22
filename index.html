@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sepak Bola Carrom: Extreme Mode</title>
+    <title>Sepak Bola Carrom: V4 (Bug Fixed)</title>
     <style>
         body {
             margin: 0;
@@ -16,7 +16,7 @@
             font-family: 'Arial', sans-serif;
             overflow: hidden;
             color: white;
-            user-select: none; /* Biar teks gak ke-blok pas narik mouse */
+            user-select: none;
         }
 
         #game-container {
@@ -27,7 +27,7 @@
         }
 
         canvas {
-            background: #218c74; /* Rumput Hijau Tua */
+            background: #218c74;
             display: block;
             cursor: crosshair;
         }
@@ -47,16 +47,13 @@
             z-index: 5;
         }
 
-        .score-box {
-            text-align: center;
-        }
+        .score-box { text-align: center; }
         .score-num { font-size: 2.5em; font-weight: 900; display: block; line-height: 1; }
         .score-label { font-size: 0.8em; opacity: 0.8; font-weight: bold; }
         
         #red-score .score-num { color: #ff5e57; }
         #blue-score .score-num { color: #0fb9b1; }
 
-        /* TIMER DI TENGAH */
         #timer-box {
             background: rgba(0,0,0,0.6);
             padding: 5px 20px;
@@ -67,7 +64,6 @@
         #timer-val { font-size: 2em; font-weight: bold; color: #ffd32a; }
         #timer-label { font-size: 0.7em; text-transform: uppercase; letter-spacing: 2px; }
 
-        /* Giliran Indicator */
         #turn-indicator {
             position: absolute;
             bottom: 15px;
@@ -83,7 +79,6 @@
             z-index: 5;
         }
 
-        /* Layar Modal (Start & Game Over) */
         .modal {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -157,39 +152,34 @@
     const ctx = canvas.getContext('2d');
     
     const MAX_SCORE = 5;
-    const TURN_TIME_LIMIT = 30; // 30 Detik per ronde
-    const POWERUP_LIFETIME = 10000; // 10 Detik (dalam milidetik)
-    const MAX_DRAG_FORCE = 15; // Batas kekuatan maksimal (biar gak teleport)
+    const TURN_TIME_LIMIT = 30; 
+    const POWERUP_LIFETIME = 10000; 
     
     const FRICTION = 0.97; 
     const PLAYER_RADIUS = 20;
     const BALL_RADIUS = 12;
     const GOAL_SIZE = 130;
 
-    // Lokasi Spawn PowerUp (5 Titik: Tengah, Kiri Atas, Kiri Bawah, Kanan Atas, Kanan Bawah)
     const POWERUP_SPOTS = [
-        {x: 400, y: 250}, // Tengah
-        {x: 200, y: 125}, // Kiri Atas
-        {x: 200, y: 375}, // Kiri Bawah
-        {x: 600, y: 125}, // Kanan Atas
-        {x: 600, y: 375}  // Kanan Bawah
+        {x: 400, y: 250}, 
+        {x: 200, y: 125}, 
+        {x: 200, y: 375}, 
+        {x: 600, y: 125}, 
+        {x: 600, y: 375} 
     ];
 
-    // --- STATE GAME ---
     let players = [];
     let ball = { x: 400, y: 250, vx: 0, vy: 0, color: '#f5f6fa' };
-    let activePowerUp = null; // Objek powerup yg lagi muncul
+    let activePowerUp = null; 
     
     let isRedTurn = true;
     let isMoving = false;
     let scores = { red: 0, blue: 0 };
     
-    // Timer Variables
     let turnTimerValue = TURN_TIME_LIMIT;
     let turnTimerInterval = null;
     let powerUpTimeout = null;
 
-    // Dragging Variables
     let dragInfo = { 
         active: false, 
         startX: 0, startY: 0, 
@@ -197,52 +187,43 @@
         selectedPlayer: null 
     };
 
-    // --- SETUP AWAL ---
     function initPositions() {
         ball.x = canvas.width / 2;
         ball.y = canvas.height / 2;
         ball.vx = 0; ball.vy = 0;
 
         players = [];
-        // Formasi Tim Merah (Kiri)
         players.push({ x: 100, y: 250, vx: 0, vy: 0, team: 'red', color: '#ff5e57', boosted: false });
         players.push({ x: 250, y: 150, vx: 0, vy: 0, team: 'red', color: '#ff5e57', boosted: false });
         players.push({ x: 250, y: 350, vx: 0, vy: 0, team: 'red', color: '#ff5e57', boosted: false });
 
-        // Formasi Tim Biru (Kanan)
         players.push({ x: 700, y: 250, vx: 0, vy: 0, team: 'blue', color: '#0fb9b1', boosted: false });
         players.push({ x: 550, y: 150, vx: 0, vy: 0, team: 'blue', color: '#0fb9b1', boosted: false });
         players.push({ x: 550, y: 350, vx: 0, vy: 0, team: 'blue', color: '#0fb9b1', boosted: false });
 
-        activePowerUp = null; // Reset powerup
+        activePowerUp = null;
     }
 
-    // --- SISTEM WAKTU & GILIRAN ---
-    
     function startTurn() {
-        // 1. Reset Timer Ronde
         clearInterval(turnTimerInterval);
         turnTimerValue = TURN_TIME_LIMIT;
         updateTimerUI();
         
         turnTimerInterval = setInterval(() => {
-            if (isMoving) return; // Timer pause kalau bola lagi gerak
+            if (isMoving) return; 
 
             turnTimerValue--;
             updateTimerUI();
             
             if (turnTimerValue <= 0) {
-                // Waktu Habis!
                 clearInterval(turnTimerInterval);
                 alert("⏱️ WAKTU HABIS! Giliran Hangus!");
                 switchTurn();
             }
         }, 1000);
 
-        // 2. Spawn Power Up Baru (Mekanik Baru)
         spawnRandomPowerUp();
         
-        // 3. Update UI Giliran
         const ind = document.getElementById('turn-indicator');
         ind.innerText = isRedTurn ? "GILIRAN: TIM MERAH" : "GILIRAN: TIM BIRU";
         ind.style.color = isRedTurn ? "#ff5e57" : "#0fb9b1";
@@ -256,18 +237,13 @@
     function updateTimerUI() {
         const el = document.getElementById('timer-val');
         el.innerText = turnTimerValue;
-        // Warnai merah kalau mau habis
         el.style.color = turnTimerValue <= 10 ? "#ff3f34" : "#ffd32a"; 
     }
 
-    // --- SISTEM POWER UP ---
-    
     function spawnRandomPowerUp() {
-        // Hapus powerup lama (kalau ada)
         activePowerUp = null; 
         clearTimeout(powerUpTimeout);
 
-        // Pilih lokasi random 0-4
         const randIndex = Math.floor(Math.random() * POWERUP_SPOTS.length);
         const spot = POWERUP_SPOTS[randIndex];
 
@@ -278,27 +254,22 @@
             spawnTime: Date.now()
         };
 
-        // Set timer 10 detik untuk hilang
         powerUpTimeout = setTimeout(() => {
             if(activePowerUp) {
-                activePowerUp = null; // Hilang
-                console.log("PowerUp Expired!"); 
+                activePowerUp = null; 
             }
         }, POWERUP_LIFETIME);
     }
 
-    // --- GAME LOOP UTAMA ---
     function update() {
         let movementDetected = false;
 
-        // 1. Fisika Pemain
         players.forEach(p => {
             p.x += p.vx;
             p.y += p.vy;
             p.vx *= FRICTION;
             p.vy *= FRICTION;
 
-            // Tembok
             if (p.x - PLAYER_RADIUS < 0) { p.x = PLAYER_RADIUS; p.vx *= -0.8; }
             if (p.x + PLAYER_RADIUS > canvas.width) { p.x = canvas.width - PLAYER_RADIUS; p.vx *= -0.8; }
             if (p.y - PLAYER_RADIUS < 0) { p.y = PLAYER_RADIUS; p.vy *= -0.8; }
@@ -307,17 +278,14 @@
             if (Math.abs(p.vx) > 0.05 || Math.abs(p.vy) > 0.05) movementDetected = true;
         });
 
-        // 2. Fisika Bola
         ball.x += ball.vx;
         ball.y += ball.vy;
         ball.vx *= FRICTION;
         ball.vy *= FRICTION;
 
-        // Tembok Bola
         if (ball.y - BALL_RADIUS < 0) { ball.y = BALL_RADIUS; ball.vy *= -0.8; }
         if (ball.y + BALL_RADIUS > canvas.height) { ball.y = canvas.height - BALL_RADIUS; ball.vy *= -0.8; }
         
-        // Cek Goal
         let inGoalZone = (ball.y > (canvas.height - GOAL_SIZE)/2 && ball.y < (canvas.height + GOAL_SIZE)/2);
         if (ball.x - BALL_RADIUS < 0) {
             if (inGoalZone) handleGoal('blue');
@@ -330,14 +298,14 @@
 
         if (Math.abs(ball.vx) > 0.05 || Math.abs(ball.vy) > 0.05) movementDetected = true;
 
-        // 3. Tabrakan & PowerUp
         resolveCollisions();
-        checkPowerUpCollection();
+        
+        // BUG FIX DISINI: Panggil fungsi yang aman
+        checkPowerUpCollectionSafe(); 
 
-        // 4. Logic Stop/Start Turn
         if (isMoving && !movementDetected) {
             isMoving = false;
-            switchTurn(); // Bola berhenti, ganti giliran
+            switchTurn(); 
         }
         if (movementDetected) isMoving = true;
 
@@ -346,7 +314,6 @@
     }
 
     function resolveCollisions() {
-        // Pemain vs Bola
         players.forEach(p => {
             let dx = ball.x - p.x;
             let dy = ball.y - p.y;
@@ -355,9 +322,8 @@
 
             if (dist < minDist) {
                 let angle = Math.atan2(dy, dx);
-                let force = p.boosted ? 2.5 : 1.5; // Kalo dapet powerup, tendangan lebih keras
+                let force = p.boosted ? 2.5 : 1.5; 
                 
-                // Reset boost setelah nendang
                 if(p.boosted) p.boosted = false;
 
                 let overlap = minDist - dist;
@@ -373,7 +339,6 @@
             }
         });
 
-        // Pemain vs Pemain
         for (let i = 0; i < players.length; i++) {
             for (let j = i + 1; j < players.length; j++) {
                 let p1 = players[i];
@@ -391,7 +356,6 @@
                     p2.x += Math.cos(angle) * overlap;
                     p2.y += Math.sin(angle) * overlap;
 
-                    // Pantulan Sederhana (Swap Velocity)
                     let tx = Math.cos(angle), ty = Math.sin(angle);
                     let dpTan1 = p1.vx * ty - p1.vy * tx;
                     let dpTan2 = p2.vx * ty - p2.vy * tx;
@@ -409,21 +373,28 @@
         }
     }
 
-    function checkPowerUpCollection() {
-        if (!activePowerUp) return;
+    // --- PERBAIKAN BUG CRASH ---
+    function checkPowerUpCollectionSafe() {
+        if (!activePowerUp) return; 
 
-        players.forEach(p => {
+        // Kita pakai loop manual biar bisa 'break' kalau powerup udah diambil
+        for (let i = 0; i < players.length; i++) {
+            
+            // Cek dobel (Safety Check)
+            if (!activePowerUp) break; 
+
+            let p = players[i];
             let dx = p.x - activePowerUp.x;
             let dy = p.y - activePowerUp.y;
             let dist = Math.sqrt(dx*dx + dy*dy);
 
             if (dist < PLAYER_RADIUS + activePowerUp.radius) {
-                // Kena PowerUp!
+                // Kena! Hapus powerup
                 activePowerUp = null;
                 clearTimeout(powerUpTimeout);
-                p.boosted = true; // Kasih efek
+                p.boosted = true; 
                 
-                // Visual Effect sederhana
+                // Visual Effect
                 ctx.save();
                 ctx.fillStyle = "yellow";
                 ctx.globalAlpha = 0.5;
@@ -431,28 +402,25 @@
                 ctx.arc(p.x, p.y, 50, 0, Math.PI*2);
                 ctx.fill();
                 ctx.restore();
+
+                break; // PENTING: Stop loop langsung biar gak error ke pemain berikutnya
             }
-        });
+        }
     }
 
-    // --- GAMBAR (RENDERING) ---
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Garis Lapangan
         ctx.strokeStyle = 'rgba(255,255,255,0.2)';
         ctx.lineWidth = 4;
         ctx.beginPath(); ctx.moveTo(canvas.width/2, 0); ctx.lineTo(canvas.width/2, canvas.height); ctx.stroke();
         ctx.beginPath(); ctx.arc(canvas.width/2, canvas.height/2, 70, 0, Math.PI*2); ctx.stroke();
 
-        // Gawang
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
         ctx.fillRect(0, (canvas.height - GOAL_SIZE)/2, 8, GOAL_SIZE);
         ctx.fillRect(canvas.width-8, (canvas.height - GOAL_SIZE)/2, 8, GOAL_SIZE);
 
-        // Draw PowerUp
         if (activePowerUp) {
-            // Efek kedip kalau mau habis (di bawah 3 detik)
             let timeLeft = (activePowerUp.spawnTime + POWERUP_LIFETIME) - Date.now();
             if (timeLeft > 3000 || Math.floor(Date.now() / 200) % 2 === 0) {
                 ctx.beginPath();
@@ -469,7 +437,6 @@
             }
         }
 
-        // Draw Bola
         ctx.beginPath();
         ctx.arc(ball.x, ball.y, BALL_RADIUS, 0, Math.PI*2);
         ctx.fillStyle = ball.color;
@@ -477,16 +444,14 @@
         ctx.strokeStyle = '#2f3640';
         ctx.stroke();
 
-        // Draw Pemain
         players.forEach(p => {
             ctx.beginPath();
             ctx.arc(p.x, p.y, PLAYER_RADIUS, 0, Math.PI*2);
             ctx.fillStyle = p.color;
             ctx.fill();
             
-            // Indikator Boost
             if (p.boosted) {
-                ctx.strokeStyle = '#fbc531'; // Emas
+                ctx.strokeStyle = '#fbc531'; 
                 ctx.lineWidth = 4;
             } else {
                 ctx.strokeStyle = 'rgba(0,0,0,0.2)';
@@ -494,7 +459,6 @@
             }
             ctx.stroke();
 
-            // Indikator Giliran Aktif
             if ((isRedTurn && p.team === 'red') || (!isRedTurn && p.team === 'blue')) {
                 ctx.fillStyle = 'white';
                 ctx.beginPath();
@@ -503,7 +467,6 @@
             }
         });
 
-        // Garis Drag (Aiming)
         if (dragInfo.active && dragInfo.selectedPlayer) {
             ctx.beginPath();
             ctx.moveTo(dragInfo.selectedPlayer.x, dragInfo.selectedPlayer.y);
@@ -516,12 +479,10 @@
         }
     }
 
-    // --- LOGIC SKOR & RESET ---
     function handleGoal(scorer) {
         scores[scorer]++;
         document.querySelector(`#${scorer}-score .score-num`).innerText = scores[scorer];
         
-        // Animasi simpel guncangan layar
         document.body.style.transform = "translate(5px, 5px)";
         setTimeout(() => document.body.style.transform = "none", 100);
 
@@ -530,8 +491,8 @@
         } else {
             initPositions();
             isMoving = false;
-            clearInterval(turnTimerInterval); // Stop timer pas gol
-            setTimeout(() => startTurn(), 1000); // Mulai lagi setelah 1 detik
+            clearInterval(turnTimerInterval); 
+            setTimeout(() => startTurn(), 1000); 
         }
     }
 
@@ -563,9 +524,6 @@
         document.getElementById('start-screen').classList.remove('hidden');
     }
 
-    // --- INPUT HANDLING (MOUSE & TOUCH TEMBUS BATAS) ---
-    
-    // Gunakan 'window' untuk move/up biar bisa tarik sampe keluar canvas
     window.addEventListener('mousedown', (e) => checkStartDrag(e.clientX, e.clientY));
     window.addEventListener('touchstart', (e) => checkStartDrag(e.touches[0].clientX, e.touches[0].clientY), {passive: false});
     
@@ -588,7 +546,6 @@
     function checkStartDrag(cx, cy) {
         if (isMoving) return;
         
-        // Cek klik hanya di dalam area canvas untuk memulai (biar gak klik di luar)
         const rect = canvas.getBoundingClientRect();
         if (cx < rect.left || cx > rect.right || cy < rect.top || cy > rect.bottom) return;
 
@@ -596,7 +553,7 @@
         
         players.forEach(p => {
             let dist = Math.hypot(pos.x - p.x, pos.y - p.y);
-            if (dist < PLAYER_RADIUS * 1.5) { // Area sentuh agak digedein dikit biar gampang
+            if (dist < PLAYER_RADIUS * 1.5) { 
                 if ((isRedTurn && p.team === 'red') || (!isRedTurn && p.team === 'blue')) {
                     dragInfo.active = true;
                     dragInfo.selectedPlayer = p;
@@ -612,7 +569,6 @@
     function updateDrag(cx, cy) {
         if (!dragInfo.active) return;
         const pos = getCanvasPos(cx, cy);
-        // Kita biarkan pos.x dan pos.y keluar dari angka 0-800 (tembus batas)
         dragInfo.currentX = pos.x;
         dragInfo.currentY = pos.y;
     }
@@ -623,16 +579,15 @@
         let dx = dragInfo.startX - dragInfo.currentX;
         let dy = dragInfo.startY - dragInfo.currentY;
         
-        // Kalkulasi Power dengan Limit
         let rawPower = Math.hypot(dx, dy);
-        let power = Math.min(rawPower, 200) * 0.15; // Batasi tarikan max (200px), konversi ke speed
+        let power = Math.min(rawPower, 200) * 0.15; 
         
-        if (power > 1) { // Minimal tarikan biar gak kepeleset
+        if (power > 1) { 
             let angle = Math.atan2(dy, dx);
             dragInfo.selectedPlayer.vx = Math.cos(angle) * power;
             dragInfo.selectedPlayer.vy = Math.sin(angle) * power;
             isMoving = true;
-            clearInterval(turnTimerInterval); // Stop timer pas nendang
+            clearInterval(turnTimerInterval); 
         }
 
         dragInfo.active = false;
