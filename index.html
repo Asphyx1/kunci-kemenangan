@@ -1,194 +1,433 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fragment of Memory</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;700&display=swap" rel="stylesheet">
-    
+    <title>Kisah Cinta Beryl: 7 Hati 1 Pilihan</title>
     <style>
-        /* --- CSS: Gaya Visual dan Efek Memori --- */
-        :root {
-            --color-text-primary: #EAEAEA; 
-            --color-background: #0D0D0D; 
-            --font-primary: 'Cormorant Garamond', serif;
-        }
-
         body {
             margin: 0;
             padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #222;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            background-color: var(--color-background);
-            color: var(--color-text-primary);
-            font-family: var(--font-primary);
-            overflow: hidden; 
+            height: 100vh;
+            overflow: hidden;
         }
 
-        /* Efek Background Cahaya Gelap/Blur (Visualisasi Memori) */
-        .background-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            /* Radial gradient untuk cahaya samar dan blur untuk kesan memori */
-            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0.9) 80%);
-            filter: blur(5px);
-            z-index: 0;
-        }
-
-        .memory-container {
+        /* Container Utama Game */
+        #game-container {
+            width: 800px;
+            height: 600px;
+            background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://images.unsplash.com/photo-1565523065632-6b6a42a2251e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80');
+            background-size: cover;
+            background-position: center;
             position: relative;
-            text-align: center;
-            z-index: 1; 
-            max-width: 90%;
-            padding: 20px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            border-radius: 10px;
+            overflow: hidden;
         }
 
-        h1 {
-            font-size: clamp(24px, 4vw, 60px); 
-            font-weight: 300; 
-            letter-spacing: 2px;
-            opacity: 0; 
-            transition: opacity 2s ease-in-out; /* Transisi muncul/hilang perlahan (2 detik) */
-            cursor: default;
+        /* Layar Visual Karakter (Placeholder) */
+        #character-display {
+            position: absolute;
+            bottom: 180px;
+            left: 50%;
+            transform: translateX(-50%);
+            height: 400px;
+            display: flex;
+            align-items: flex-end;
         }
-
-        /* Teks yang bisa dipencet */
-        .interactive-text {
-            cursor: pointer;
-        }
-
-        .interactive-text:hover {
-            color: rgba(255, 255, 255, 0.8);
-        }
-
-        /* Kelas untuk memunculkan elemen */
-        .visible {
-            opacity: 1;
-        }
-
-        /* Gaya untuk Prompt Akhir */
-        #final-prompt {
-            opacity: 0;
-            transition: opacity 2s ease-in-out;
-        }
-
-        #final-prompt p {
-            font-size: clamp(18px, 2.5vw, 40px);
-            font-weight: 400;
-        }
-
-        #deep-dive-btn {
-            background: transparent;
-            border: 1px solid var(--color-text-primary);
-            color: var(--color-text-primary);
-            padding: 10px 20px;
-            font-family: var(--font-primary);
-            font-size: clamp(14px, 1.5vw, 24px);
-            cursor: pointer;
-            margin-top: 15px;
+        
+        .char-img {
+            height: 100%;
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));
             transition: all 0.3s ease;
         }
 
-        #deep-dive-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        /* Kotak Dialog */
+        #dialogue-box {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid #4a90e2;
+            border-radius: 10px;
+            padding: 20px;
+            color: white;
         }
+
+        #speaker-name {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #ffeb3b;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        #dialogue-text {
+            font-size: 1.1em;
+            line-height: 1.5;
+        }
+
+        /* Area Pilihan */
+        #choices-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 100;
+            width: 80%;
+        }
+
+        .choice-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            padding: 15px;
+            font-size: 1.1em;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: transform 0.2s, background 0.2s;
+            text-align: center;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .choice-btn:hover {
+            transform: scale(1.02);
+            background: #4a90e2;
+            color: white;
+        }
+
+        /* Layar Statistik (Optional) */
+        #stats {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: rgba(255,255,255,0.5);
+            font-size: 0.8em;
+        }
+
+        /* Ending Screen */
+        .ending-screen {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: black;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 200;
+            padding: 50px;
+        }
+        .ending-title { font-size: 3em; color: gold; margin-bottom: 20px; }
+        .ending-desc { font-size: 1.2em; margin-bottom: 30px; }
+        .restart-btn { padding: 10px 20px; cursor: pointer; font-size: 1.2em; }
+
     </style>
 </head>
 <body>
-    <div class="background-overlay"></div>
-    
-    <div class="memory-container">
-        <h1 id="text1" class="hidden interactive-text">
-            do you want to go deeper?
-        </h1>
-        
-        <h1 id="text2" class="hidden">
-            we've been together for 3 years and 28 day(s)
-        </h1>
-        
-        <h1 id="text3" class="hidden">
-            it's the same as 1,617,120 minutes and 97,027,200 seconds
-        </h1>
 
-        <div id="final-prompt" class="hidden">
-            <p>want to know about us? press this button</p>
-            <button id="deep-dive-btn">Deep Dive</button>
+    <div id="game-container">
+        <div id="stats">Debug: Alya:<span id="s-alya">0</span> Bella:<span id="s-bella">0</span> Cindy:<span id="s-cindy">0</span></div>
+        
+        <div id="character-display">
+            </div>
+
+        <div id="choices-container" style="display: none;">
+            </div>
+
+        <div id="dialogue-box">
+            <div id="speaker-name">Nama Karakter</div>
+            <div id="dialogue-text">Teks dialog akan muncul di sini...</div>
         </div>
     </div>
 
     <script>
-        // --- JAVASCRIPT: Logika Timing dan Urutan ---
-        document.addEventListener('DOMContentLoaded', () => {
-            const text1 = document.getElementById('text1');
-            const text2 = document.getElementById('text2');
-            const text3 = document.getElementById('text3');
-            const finalPrompt = document.getElementById('final-prompt');
+        // --- KONFIGURASI GAME ---
+        
+        // Status Poin Cinta (Bisa ditambah sampai 7 cewek)
+        let affection = {
+            alya: 0,  // Teman masa kecil
+            bella: 0, // Ketua OSIS Galak (Tsundere)
+            cindy: 0, // Gamers pendiam
+            diana: 0, // Primadona sekolah
+            eva: 0,   // Adik kelas
+            fiona: 0, // Guru muda
+            gita: 0   // Misterius
+        };
+
+        // Database Cerita
+        const story = {
+            // SCENE AWAL
+            "start": {
+                speaker: "Beryl",
+                text: "Ah, alarm sialan... Hari ini hari pertama semester baru. Rasanya ingin tidur selamanya, tapi kalau telat, bisa gawat.",
+                choices: [
+                    { text: "Bangun dan siap-siap ganteng", next: "scene_dapur" },
+                    { text: "Tidur 5 menit lagi...", next: "scene_telat" }
+                ]
+            },
             
-            const TRANSITION_TIME = 2000; // 2 detik (sesuai CSS transition)
+            "scene_telat": {
+                speaker: "Ibu",
+                text: "BERYL! KAMU MAU JADI PENGANGGURAN?! BANGUN!",
+                background: "#330000", // Simulasi ubah bg
+                choices: [
+                    { text: "Iya bu, ampun!", next: "scene_sekolah_gerbang" }
+                ]
+            },
 
-            // Teks 1 muncul (setelah 5 detik)
-            setTimeout(() => {
-                text1.classList.add('visible');
-            }, 5000); 
+            "scene_dapur": {
+                speaker: "Beryl",
+                text: "Aku turun ke dapur. Roti panggang sudah tersedia. Tiba-tiba ponselku bergetar. Ada 3 pesan masuk sekaligus.",
+                choices: [
+                    { text: "Buka pesan dari Alya (Teman Kecil)", next: "chat_alya", effect: () => affection.alya += 1 },
+                    { text: "Buka pesan dari Bella (Ketos)", next: "chat_bella", effect: () => affection.bella += 1 },
+                    { text: "Buka pesan Unknown Number", next: "chat_gita", effect: () => affection.gita += 1 }
+                ]
+            },
+
+            // CABANG CHAT
+            "chat_alya": {
+                speaker: "Alya",
+                text: "Pesan: 'Woy kebo! Jangan lupa jemput gue ya! Awas lo telat kayak biasa!'",
+                choices: [
+                    { text: "Balas: 'Siap Tuan Putri'", next: "scene_jemput_alya", effect: () => affection.alya += 2 },
+                    { text: "Balas: 'Males ah, jalan sendiri sana'", next: "scene_sekolah_gerbang", effect: () => affection.alya -= 1 }
+                ]
+            },
+            "chat_bella": {
+                speaker: "Bella",
+                text: "Pesan: 'Beryl, berkas proposal kemarin salah semua! Temui saya di ruang OSIS sebelum jam 7. Jangan terlambat!'",
+                choices: [
+                    { text: "Langsung lari ke sekolah", next: "scene_ruang_osis", effect: () => affection.bella += 2 },
+                    { text: "Pura-pura gak baca", next: "scene_sekolah_gerbang", effect: () => affection.bella -= 2 }
+                ]
+            },
+            "chat_gita": {
+                speaker: "???",
+                text: "Pesan: 'Aku melihatmu dalam mimpiku semalam, Beryl...'",
+                choices: [
+                    { text: "Merinding... abaikan.", next: "scene_sekolah_gerbang" },
+                    { text: "Balas: 'Ini siapa?'", next: "scene_atap_gita", effect: () => affection.gita += 3 }
+                ]
+            },
+
+            // SCENE SEKOLAH (Pertemuan)
+            "scene_jemput_alya": {
+                speaker: "Alya",
+                text: "Alya menunggumu di depan pagar rumahnya. Dia tersenyum cerah. 'Tumben tepat waktu, Beryl. Nih, aku buatin bekal ekstra.'",
+                choices: [
+                    { text: "Terima kasih, Alya!", next: "scene_sekolah_gerbang", effect: () => affection.alya += 2 },
+                    { text: "Cieee perhatian banget", next: "scene_sekolah_gerbang", effect: () => affection.alya += 1 }
+                ]
+            },
+
+            "scene_ruang_osis": {
+                speaker: "Bella",
+                text: "Di ruang OSIS, Bella menatapmu tajam sambil membetulkan kacamatanya. 'Kamu ini ceroboh sekali. Tapi... makasih sudah datang cepat.' Wajahnya sedikit memerah.",
+                choices: [
+                    { text: "Goda dia: 'Ciee pipinya merah'", next: "scene_sekolah_gerbang", effect: () => affection.bella -= 1 },
+                    { text: "Minta maaf dan perbaiki", next: "scene_sekolah_gerbang", effect: () => affection.bella += 3 }
+                ]
+            },
+
+            "scene_sekolah_gerbang": {
+                speaker: "Beryl",
+                text: "Sampai di gerbang sekolah. Suasana ramai sekali. Tiba-tiba seseorang menabrakku dengan keras!",
+                choices: [
+                    { text: "Aduh! Liat-liat dong!", next: "encounter_cindy" },
+                    { text: "Tangkap orang itu agar tidak jatuh", next: "encounter_cindy", effect: () => affection.cindy += 2 }
+                ]
+            },
+
+            "encounter_cindy": {
+                speaker: "Cindy",
+                text: "Seorang gadis berkacamata tebal menjatuhkan konsol gamenya. 'M-maaf... aku lagi fokus gacha...' Dia adalah Cindy.",
+                choices: [
+                    { text: "Bantu ambil konsolnya", next: "mid_game_choice", effect: () => affection.cindy += 2 },
+                    { text: "Tanya: 'Main game apa?'", next: "mid_game_choice", effect: () => affection.cindy += 3 }
+                ]
+            },
+
+            // PERTENGAHAN GAME - TITIK PENENTUAN
+            "mid_game_choice": {
+                speaker: "Narator",
+                text: "Jam istirahat tiba. Festival sekolah akan diadakan besok. Siapa yang akan kamu ajak berkeliling?",
+                choices: [
+                    { text: "Ajak Alya (Teman Kecil)", next: "check_alya" },
+                    { text: "Ajak Bella (Ketos)", next: "check_bella" },
+                    { text: "Ajak Cindy (Gamer)", next: "check_cindy" },
+                    { text: "Ajak semuanya (Harem Route?)", next: "ending_harem_fail" }
+                ]
+            },
+
+            // LOGIKA ENDING (CHECKER)
+            "check_alya": {
+                speaker: "System", text: "Mengecek poin afeksi Alya...",
+                check: () => {
+                    if (affection.alya >= 3) return "ending_alya_good";
+                    else return "ending_alya_bad";
+                }
+            },
+            "check_bella": {
+                speaker: "System", text: "Mengecek poin afeksi Bella...",
+                check: () => {
+                    if (affection.bella >= 3) return "ending_bella_good";
+                    else return "ending_bella_bad";
+                }
+            },
+            "check_cindy": {
+                speaker: "System", text: "Mengecek poin afeksi Cindy...",
+                check: () => {
+                    if (affection.cindy >= 3) return "ending_cindy_good";
+                    else return "ending_cindy_bad";
+                }
+            },
+
+            // DAFTAR ENDING
+            "ending_alya_good": {
+                isEnding: true,
+                title: "Ending 1: Cinta Masa Kecil",
+                text: "Kamu mengajak Alya. Di bawah kembang api, dia akhirnya mengakui perasaannya. 'Beryl, dari dulu aku cuma liat kamu...'. Kalian resmi pacaran!",
+                color: "#ff99cc"
+            },
+            "ending_alya_bad": {
+                isEnding: true,
+                title: "Bad Ending: Friendzone Abadi",
+                text: "Alya tertawa canggung. 'Haha, Beryl, kita kan sohib. Jangan bercanda deh.' Dia pergi meninggalkanmu sendiri.",
+                color: "#555"
+            },
+
+            "ending_bella_good": {
+                isEnding: true,
+                title: "Ending 2: Takluknya Sang Ratu",
+                text: "Bella tersipu malu menerima ajakanmu. Sejak hari itu, dia menjadi lebih lembut hanya kepadamu, meskipun masih suka ngomel kalau kamu malas.",
+                color: "#4a90e2"
+            },
+            "ending_bella_bad": {
+                isEnding: true,
+                title: "Bad Ending: Ditolak Mentah-mentah",
+                text: "Bella menatapmu dingin. 'Maaf, saya sibuk mengurus OSIS. Jangan ganggu prioritas saya.'",
+                color: "#555"
+            },
+
+            "ending_cindy_good": {
+                isEnding: true,
+                title: "Ending 3: Player 2 Has Joined",
+                text: "Mata Cindy berbinar. Kalian menghabiskan festival dengan bermain game di stand arcade. 'Beryl, kamu adalah Player 2 favoritku selamanya.'",
+                color: "#9b59b6"
+            },
+            "ending_cindy_bad": {
+                isEnding: true,
+                title: "Bad Ending: Game Over",
+                text: "Cindy lebih memilih event gacha di HP-nya daripada jalan sama kamu. Kamu dicuekin total.",
+                color: "#555"
+            },
+
+            "ending_harem_fail": {
+                isEnding: true,
+                title: "Ending Spesial: Tragedi Buaya Darat",
+                text: "Kamu mencoba mengajak mereka semua di grup chat yang sama. Mereka semua sadar, lalu mengeroyokmu di belakang sekolah. Kamu jomblo selamanya.",
+                color: "#b71c1c"
+            }
+        };
+
+        // --- ENGINE LOGIC ---
+        let currentScene = "start";
+
+        const speakerEl = document.getElementById("speaker-name");
+        const textEl = document.getElementById("dialogue-text");
+        const choicesContainer = document.getElementById("choices-container");
+        const gameContainer = document.getElementById("game-container");
+        
+        // Update tampilan stats (untuk debug)
+        function updateStats() {
+            document.getElementById("s-alya").innerText = affection.alya;
+            document.getElementById("s-bella").innerText = affection.bella;
+            document.getElementById("s-cindy").innerText = affection.cindy;
+        }
+
+        function showScene(sceneId) {
+            // Cek jika scene adalah fungsi pengecekan (Logic Branch)
+            if (story[sceneId].check) {
+                let nextScene = story[sceneId].check();
+                showScene(nextScene);
+                return;
+            }
+
+            // Cek jika Ending
+            if (story[sceneId].isEnding) {
+                renderEnding(story[sceneId]);
+                return;
+            }
+
+            const scene = story[sceneId];
+            currentScene = sceneId;
+
+            // Update Text UI
+            speakerEl.innerText = scene.speaker;
+            textEl.innerText = scene.text;
             
-            // Listener untuk Teks 1
-            text1.addEventListener('click', () => {
-                // Hilangkan Teks 1
-                text1.classList.remove('visible');
+            // Ubah background jika ada properti background di scene
+            if(scene.background) {
+                // gameContainer.style.background = scene.background; // Contoh sederhana ganti warna
+            }
 
-                // Tunggu transisi hilang
-                setTimeout(() => {
-                    text1.style.display = 'none';
-
-                    // Teks 2 muncul
-                    text2.classList.add('visible');
-
-                    // Teks 2 menghilang (setelah 10 detik tampil)
-                    setTimeout(() => {
-                        text2.classList.remove('visible');
-
-                        // Tunggu transisi hilang
-                        setTimeout(() => {
-                            text2.style.display = 'none';
-
-                            // Teks 3 muncul
-                            text3.classList.add('visible');
-
-                            // Teks 3 menghilang (setelah 16 detik tampil)
-                            setTimeout(() => {
-                                text3.classList.remove('visible');
-
-                                // Tunggu transisi hilang, lalu munculkan Prompt Akhir
-                                setTimeout(() => {
-                                    text3.style.display = 'none';
-
-                                    // Prompt Akhir muncul
-                                    finalPrompt.classList.add('visible');
-                                    
-                                }, TRANSITION_TIME); // Waktu transisi hilang Teks 3
-
-                            }, 16000); // Durasi Teks 3 tampil (16 detik)
-
-                        }, TRANSITION_TIME); // Waktu transisi hilang Teks 2
-
-                    }, 10000); // Durasi Teks 2 tampil (10 detik)
-
-                }, TRANSITION_TIME); // Waktu transisi hilang Teks 1
-            });
+            // Render Pilihan
+            choicesContainer.innerHTML = ""; // Reset tombol
             
-            // Anda bisa tambahkan listener untuk 'deep-dive-btn' di sini jika sudah ada halaman tujuan:
-            // document.getElementById('deep-dive-btn').addEventListener('click', () => {
-            //     window.location.href = "halaman-memori-selanjutnya.html";
-            // });
+            // Jika ada pilihan
+            if (scene.choices) {
+                // Sembunyikan kotak dialog saat memilih (opsional, di sini kita biarkan tetap tampil tapi tombol di tengah)
+                choicesContainer.style.display = "flex";
+                
+                scene.choices.forEach(choice => {
+                    const btn = document.createElement("button");
+                    btn.className = "choice-btn";
+                    btn.innerText = choice.text;
+                    
+                    btn.onclick = () => {
+                        // Jalankan efek (tambah/kurang poin)
+                        if (choice.effect) {
+                            choice.effect();
+                            updateStats();
+                        }
+                        // Pindah scene
+                        showScene(choice.next);
+                    };
+                    
+                    choicesContainer.appendChild(btn);
+                });
+            } else {
+                // Jika tidak ada pilihan (klik untuk lanjut linear)
+                // Bisa ditambahkan fitur "Click to continue" sederhana
+            }
+        }
 
-        });
+        function renderEnding(endingData) {
+            gameContainer.innerHTML = `
+                <div class="ending-screen" style="background-color: ${endingData.color || 'black'}">
+                    <div class="ending-title">${endingData.title}</div>
+                    <div class="ending-desc">${endingData.text}</div>
+                    <button class="restart-btn" onclick="location.reload()">Main Lagi</button>
+                </div>
+            `;
+        }
+
+        // Mulai Game
+        showScene("start");
+
     </script>
 </body>
 </html>
