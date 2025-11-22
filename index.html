@@ -2,322 +2,497 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chronicles of Beryl: High School Romance</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sepak Bola Carrom: 3v3</title>
     <style>
-        /* --- CSS UTAMA --- */
-        body { margin: 0; background: #1a1a1a; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
-        
-        #game-screen {
-            width: 100vw; height: 100vh;
-            background-size: cover; background-position: center;
-            display: flex; flex-direction: column; justify-content: flex-end;
-            transition: background-image 0.5s ease-in-out;
+        body {
+            margin: 0;
+            background-color: #2c3e50;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            color: white;
         }
 
-        /* Karakter */
-        #char-layer {
-            position: absolute; bottom: 0; width: 100%; height: 100%;
-            pointer-events: none; /* Agar bisa klik tembus ke belakang */
-            display: flex; justify-content: center; align-items: flex-end;
+        #game-container {
+            position: relative;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            border: 5px solid #ecf0f1;
+            border-radius: 10px;
         }
-        .char-sprite { height: 85vh; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5)); transition: opacity 0.3s; }
 
-        /* UI Dialog */
+        canvas {
+            background: #27ae60; /* Rumput */
+            display: block;
+            cursor: crosshair;
+        }
+
+        /* UI Overlay */
         #ui-layer {
-            background: linear-gradient(transparent, rgba(0,0,0,0.9));
-            padding: 40px 100px;
-            min-height: 200px;
-            display: flex; flex-direction: column; gap: 10px;
-            border-top: 3px solid #ffd700;
+            position: absolute;
+            top: 10px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-sizing: border-box;
+            pointer-events: none;
+            text-shadow: 2px 2px 0 #000;
         }
 
-        #name-box {
-            background: #ffd700; color: #000; padding: 5px 20px;
-            font-weight: 800; font-size: 1.5rem; width: fit-content;
-            border-radius: 5px 20px 0 0; transform: translateY(15px);
-        }
-
-        #text-box {
-            color: #fff; font-size: 1.3rem; line-height: 1.6;
-            text-shadow: 1px 1px 2px black;
-            min-height: 80px;
-        }
-
-        /* Tombol Pilihan */
-        #choice-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        .score { font-size: 2em; font-weight: bold; }
+        #red-score { color: #e74c3c; }
+        #blue-score { color: #3498db; }
+        
+        #turn-indicator {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
             background: rgba(0,0,0,0.7);
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            gap: 20px; z-index: 99; display: none;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 1.2em;
+            pointer-events: none;
+        }
+
+        /* Layar Modal (Coin Toss & Game Over) */
+        .modal {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            text-align: center;
         }
         
-        .choice-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid #ffd700; color: white;
-            padding: 20px 40px; width: 60%; font-size: 1.2rem;
-            cursor: pointer; transition: 0.2s;
-            backdrop-filter: blur(5px);
+        button {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            background: #f1c40f;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: 0.2s;
         }
-        .choice-btn:hover { background: #ffd700; color: black; transform: scale(1.05); }
+        button:hover { transform: scale(1.1); background: #f39c12; }
 
-        /* Indikator Lanjut */
-        .next-indicator {
-            animation: bounce 1s infinite; font-size: 0.8rem; color: #ffd700; align-self: flex-end; cursor: pointer;
-        }
-        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(5px); } }
+        .hidden { display: none !important; }
 
     </style>
 </head>
 <body>
 
-    <div id="game-screen">
-        <div id="char-layer">
-            </div>
+    <div id="game-container">
+        <canvas id="field" width="800" height="500"></canvas>
+        
+        <div id="ui-layer">
+            <div id="red-score" class="score">MERAH: 0</div>
+            <div id="blue-score" class="score">BIRU: 0</div>
+        </div>
+        
+        <div id="turn-indicator">Giliran: <span id="turn-text">...</span></div>
 
-        <div id="choice-overlay"></div>
+        <div id="toss-screen" class="modal">
+            <h1>Gacha Koin!</h1>
+            <div style="font-size: 4em; margin: 20px;">🪙</div>
+            <p id="toss-result">Siapa yang jalan duluan?</p>
+            <button onclick="startCoinToss()">Putar Koin</button>
+        </div>
 
-        <div id="ui-layer" onclick="nextText()">
-            <div id="name-box">Beryl</div>
-            <div id="text-box">...</div>
-            <div class="next-indicator">Klik spasi atau layar untuk lanjut ▼</div>
+        <div id="game-over-screen" class="modal hidden">
+            <h1 id="winner-text">MERAH MENANG!</h1>
+            <button onclick="resetGame()">Main Lagi</button>
         </div>
     </div>
 
 <script>
-// --- DATABASE GAMBAR (Ganti URL ini dengan link gambar anime/background asli) ---
-const ASSETS = {
-    bg_kamar: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?q=80&w=2158&auto=format&fit=crop",
-    bg_jalan: "https://images.unsplash.com/photo-1577047424873-2c3736476370?q=80&w=2070&auto=format&fit=crop",
-    bg_sekolah: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?q=80&w=2664&auto=format&fit=crop",
-    bg_kelas: "https://images.unsplash.com/photo-1518922667629-d9b177342422?q=80&w=2070&auto=format&fit=crop",
-    
-    // Placeholder Karakter (Ganti dengan gambar transparan PNG)
-    char_alya: "https://cdn-icons-png.flaticon.com/512/4140/4140048.png", 
-    char_bella: "https://cdn-icons-png.flaticon.com/512/4140/4140037.png"
-};
+    // --- KONFIGURASI ---
+    const canvas = document.getElementById('field');
+    const ctx = canvas.getContext('2d');
+    const MAX_SCORE = 5;
+    const FRICTION = 0.975; // Semakin kecil, semakin cepat berhenti (biar gak licin banget)
+    const PLAYER_RADIUS = 20;
+    const BALL_RADIUS = 12;
+    const GOAL_SIZE = 120;
 
-// --- STATE GAME ---
-let gameState = {
-    stats: { alya: 0, bella: 0, cindy: 0, charisma: 0 },
-    flags: { met_bella: false, late_first_day: false }, // Penanda kejadian
-    history: [] // Untuk fitur log (optional)
-};
+    // --- STATE GAME ---
+    let players = [];
+    let ball = { x: 400, y: 250, vx: 0, vy: 0, color: 'white' };
+    let isRedTurn = true; // True = Merah, False = Biru
+    let isMoving = false; // Cek apakah ada benda bergerak
+    let scores = { red: 0, blue: 0 };
+    let dragInfo = { active: false, startX: 0, startY: 0, currentX: 0, currentY: 0, selectedPlayer: null };
 
-// --- SKRIP CERITA (Disinilah kamu menulis novelnya) ---
-const script = {
-    // PROLOG: MEMBANGUN SUASANA (PACING LAMBAT)
-    "start": [
-        { bg: ASSETS.bg_kamar, speaker: "Beryl", text: "..." },
-        { speaker: "Beryl", text: "Suara detak jam dinding terdengar begitu keras pagi ini." },
-        { speaker: "Beryl", text: "Cahaya matahari menembus celah gorden kamarku. Debu-debu kecil terlihat menari-nari dalam sorotan cahaya itu." },
-        { speaker: "Beryl", text: "Rasanya berat sekali membuka mata. Semester baru... kelas 2 SMA." },
-        { speaker: "Beryl", text: "Orang bilang masa SMA adalah masa paling indah. Tapi bagiku, itu cuma rutinitas membosankan yang harus dijalani." },
-        { speaker: "Beryl", text: "Aku melirik jam di meja..." },
-        { speaker: "Beryl", text: "Jam 06:15. Masih ada waktu, tapi kalau aku tidur lagi, pasti kebablasan." },
-        { 
-            choice: [
-                { text: "Bangun dan rapihkan tempat tidur (Rajin +1)", target: "rute_rajin" },
-                { text: "Tidur 10 menit lagi... (Malas)", target: "rute_malas" }
-            ] 
-        }
-    ],
+    // --- INISIALISASI ---
+    function initPositions() {
+        // Reset Bola
+        ball.x = canvas.width / 2;
+        ball.y = canvas.height / 2;
+        ball.vx = 0; ball.vy = 0;
 
-    "rute_rajin": [
-        { action: () => gameState.stats.charisma += 1 },
-        { speaker: "Beryl", text: "Aku memaksakan diri untuk duduk. Meregangkan otot-otot yang kaku." },
-        { speaker: "Beryl", text: "'Oke, Beryl. Jadilah manusia berguna hari ini,' gumamku pada diri sendiri." },
-        { speaker: "Beryl", text: "Aku merapikan selimut dan bantal. Setidaknya kamarku terlihat layak huni sebelum aku tinggal." },
-        { jump: "scene_dapur" }
-    ],
-
-    "rute_malas": [
-        { action: () => gameState.flags.late_first_day = true },
-        { speaker: "Beryl", text: "Kelopak mataku terlalu berat. Gravitasi kasur ini terlalu kuat..." },
-        { speaker: "Beryl", text: "Hanya... sepuluh... menit..." },
-        { speaker: "", text: "(Beberapa saat kemudian...)" }, // Narasi tanpa nama
-        { speaker: "Ibu", text: "BERYL!! JAM BERAPA INI?!" },
-        { speaker: "Beryl", text: "Hah?! Aku terlonjak kaget. Jam 06:45! Sialan!" },
-        { jump: "scene_dapur" }
-    ],
-
-    "scene_dapur": [
-        { bg: ASSETS.bg_kamar, speaker: "Beryl", text: "Setelah mandi kilat dan memakai seragam yang agak kusut, aku turun ke bawah." },
-        { speaker: "Beryl", text: "Rumah sepi. Ayah dan Ibu sudah berangkat kerja. Hanya ada selembar roti tawar di meja dan uang saku." },
-        { speaker: "Beryl", text: "Aku mengambil roti itu dan menggigitnya sambil memakai sepatu." },
-        { speaker: "Beryl", text: "Rutinitas dimulai." },
-        { bg: ASSETS.bg_jalan, speaker: "Beryl", text: "Udara pagi ini cukup dingin. Jalanan komplek masih agak lengang." },
-        { speaker: "Beryl", text: "Langkah kakiku bergema di aspal. Aku berjalan sambil melamunkan game yang kumainkan semalam." },
-        { speaker: "???", text: "BERYYYLLL!!" },
-        { speaker: "Beryl", text: "Suara itu... suara cempreng yang sangat kuhafal sejak TK." },
-        { char: ASSETS.char_alya, speaker: "Alya", text: "Woy! Budek ya dipanggilin dari tadi!" },
-        { speaker: "Beryl", text: "Itu Alya. Tetangga sekaligus teman masa kecilku. Rambutnya dikuncir kuda seperti biasa." },
+        players = [];
         
-        // PERCABANGAN DIALOG (Bukan ending, tapi flavor text)
-        { 
-            choice: [
-                { text: "Tungguin dia", target: "interaksi_alya_baik" },
-                { text: "Jalan terus (Cuek)", target: "interaksi_alya_jahat" }
-            ] 
-        }
-    ],
+        // Tim Merah (Kiri) - Formasi 1-2
+        players.push({ x: 100, y: 250, vx: 0, vy: 0, team: 'red', color: '#e74c3c' }); // Kiper
+        players.push({ x: 250, y: 150, vx: 0, vy: 0, team: 'red', color: '#e74c3c' }); // Atas
+        players.push({ x: 250, y: 350, vx: 0, vy: 0, team: 'red', color: '#e74c3c' }); // Bawah
 
-    "interaksi_alya_baik": [
-        { action: () => gameState.stats.alya += 1 },
-        { speaker: "Beryl", text: "Aku berhenti dan menoleh. Dia berlari kecil menghampiriku dengan napas terengah." },
-        { speaker: "Alya", text: "Hah.. hah.. jahat banget sih ninggalin! Kita kan sekelas lagi tahun ini!" },
-        { speaker: "Beryl", text: "Siapa suruh lambat. Kakimu pendek sih." },
-        { speaker: "Alya", text: "Sembarangan! Kamu tuh yang jalannya kayak raksasa!" },
-        { speaker: "Beryl", text: "Meskipun berisik, keberadaan Alya membuat pagi yang suram jadi sedikit berwarna." },
-        { jump: "scene_gerbang_sekolah" }
-    ],
+        // Tim Biru (Kanan) - Formasi 1-2
+        players.push({ x: 700, y: 250, vx: 0, vy: 0, team: 'blue', color: '#3498db' }); // Kiper
+        players.push({ x: 550, y: 150, vx: 0, vy: 0, team: 'blue', color: '#3498db' }); // Atas
+        players.push({ x: 550, y: 350, vx: 0, vy: 0, team: 'blue', color: '#3498db' }); // Bawah
+    }
 
-    "interaksi_alya_jahat": [
-        { action: () => gameState.stats.alya -= 1 },
-        { speaker: "Beryl", text: "Aku pura-pura tidak dengar dan mempercepat langkah." },
-        { speaker: "Alya", text: "HEH! JANGAN KABUR!" },
-        { speaker: "Beryl", text: "Tiba-tiba tas punggungku ditarik dari belakang. Aku hampir terjengkang." },
-        { speaker: "Alya", text: "Budek ya?! Pagi-pagi udah ngajak ribut!" },
-        { jump: "scene_gerbang_sekolah" }
-    ],
+    // --- LOGIKA UTAMA ---
+    function update() {
+        let movementDetected = false;
 
-    "scene_gerbang_sekolah": [
-        { bg: ASSETS.bg_sekolah, char: null, speaker: "Beryl", text: "SMA Harapan Bangsa. Gerbang besinya sudah terlihat." },
-        { speaker: "Beryl", text: "Banyak siswa baru kelas 1 yang celingukan mencari kelas. Lucu juga melihat wajah polos mereka." },
+        // 1. Update Fisika Pemain
+        players.forEach(p => {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vx *= FRICTION;
+            p.vy *= FRICTION;
+
+            // Cek tembok
+            if (p.x - PLAYER_RADIUS < 0) { p.x = PLAYER_RADIUS; p.vx *= -1; }
+            if (p.x + PLAYER_RADIUS > canvas.width) { p.x = canvas.width - PLAYER_RADIUS; p.vx *= -1; }
+            if (p.y - PLAYER_RADIUS < 0) { p.y = PLAYER_RADIUS; p.vy *= -1; }
+            if (p.y + PLAYER_RADIUS > canvas.height) { p.y = canvas.height - PLAYER_RADIUS; p.vy *= -1; }
+
+            // Cek berhenti total (biar gak gerak 0.0001 pixel)
+            if (Math.abs(p.vx) < 0.1) p.vx = 0;
+            if (Math.abs(p.vy) < 0.1) p.vy = 0;
+
+            if (p.vx !== 0 || p.vy !== 0) movementDetected = true;
+        });
+
+        // 2. Update Fisika Bola
+        ball.x += ball.vx;
+        ball.y += ball.vy;
+        ball.vx *= FRICTION;
+        ball.vy *= FRICTION;
+
+        // Tembok Bola (Kecuali Gawang)
+        if (ball.y - BALL_RADIUS < 0) { ball.y = BALL_RADIUS; ball.vy *= -0.8; }
+        if (ball.y + BALL_RADIUS > canvas.height) { ball.y = canvas.height - BALL_RADIUS; ball.vy *= -0.8; }
         
-        // Logic Check: Jika tadi telat bangun
-        { 
-            check: () => {
-                if (gameState.flags.late_first_day) return "event_ditangkap_osis";
-                else return "event_masuk_lancar";
+        // Cek Gol (Kiri/Kanan)
+        let inGoalZone = (ball.y > (canvas.height - GOAL_SIZE)/2 && ball.y < (canvas.height + GOAL_SIZE)/2);
+        
+        if (ball.x - BALL_RADIUS < 0) {
+            if (inGoalZone) handleGoal('blue');
+            else { ball.x = BALL_RADIUS; ball.vx *= -0.8; }
+        }
+        if (ball.x + BALL_RADIUS > canvas.width) {
+            if (inGoalZone) handleGoal('red');
+            else { ball.x = canvas.width - BALL_RADIUS; ball.vx *= -0.8; }
+        }
+
+        if (Math.abs(ball.vx) < 0.1) ball.vx = 0;
+        if (Math.abs(ball.vy) < 0.1) ball.vy = 0;
+        if (ball.vx !== 0 || ball.vy !== 0) movementDetected = true;
+
+        // 3. Tabrakan (Collision)
+        resolveCollisions();
+
+        // 4. Logic Turn
+        // Jika sebelumnya bergerak, dan sekarang semua berhenti -> Ganti Giliran
+        if (isMoving && !movementDetected) {
+            isMoving = false;
+            switchTurn();
+        }
+        if (movementDetected) {
+            isMoving = true;
+        }
+
+        draw();
+        requestAnimationFrame(update);
+    }
+
+    // --- FISIKA TABRAKAN (SEDERHANA) ---
+    function resolveCollisions() {
+        // Pemain vs Bola
+        players.forEach(p => {
+            let dx = ball.x - p.x;
+            let dy = ball.y - p.y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            let minDist = PLAYER_RADIUS + BALL_RADIUS;
+
+            if (dist < minDist) {
+                // Sudut tabrakan
+                let angle = Math.atan2(dy, dx);
+                let force = 1.5; // Bola lebih ringan, jadi mental lebih jauh
+
+                // Pisahkan biar gak nempel
+                let overlap = minDist - dist;
+                ball.x += Math.cos(angle) * overlap;
+                ball.y += Math.sin(angle) * overlap;
+
+                // Transfer momentum (Simpel)
+                let speedP = Math.sqrt(p.vx*p.vx + p.vy*p.vy);
+                ball.vx += Math.cos(angle) * speedP * force;
+                ball.vy += Math.sin(angle) * speedP * force;
+                
+                // Pemain melambat dikit pas nabrak
+                p.vx *= 0.5;
+                p.vy *= 0.5;
+            }
+        });
+
+        // Pemain vs Pemain
+        for (let i = 0; i < players.length; i++) {
+            for (let j = i + 1; j < players.length; j++) {
+                let p1 = players[i];
+                let p2 = players[j];
+                let dx = p2.x - p1.x;
+                let dy = p2.y - p1.y;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                let minDist = PLAYER_RADIUS * 2;
+
+                if (dist < minDist) {
+                    let angle = Math.atan2(dy, dx);
+                    let overlap = (minDist - dist) / 2;
+                    
+                    p1.x -= Math.cos(angle) * overlap;
+                    p1.y -= Math.sin(angle) * overlap;
+                    p2.x += Math.cos(angle) * overlap;
+                    p2.y += Math.sin(angle) * overlap;
+
+                    // Bouncing logic (Swapping velocities approx)
+                    let tx = Math.cos(angle), ty = Math.sin(angle);
+                    let dpTan1 = p1.vx * ty - p1.vy * tx;
+                    let dpTan2 = p2.vx * ty - p2.vy * tx;
+                    let dpNorm1 = p1.vx * tx + p1.vy * ty;
+                    let dpNorm2 = p2.vx * tx + p2.vy * ty;
+
+                    // Swap normal velocities
+                    let m1 = 1, m2 = 1; // Anggap berat sama
+                    let mom1 = (dpNorm1 * (m1 - m2) + 2 * m2 * dpNorm2) / (m1 + m2);
+                    let mom2 = (dpNorm2 * (m2 - m1) + 2 * m1 * dpNorm1) / (m1 + m2);
+
+                    p1.vx = tx * mom1 - ty * dpTan1;
+                    p1.vy = ty * mom1 + tx * dpTan1;
+                    p2.vx = tx * mom2 - ty * dpTan2;
+                    p2.vy = ty * mom2 + tx * dpTan2;
+                }
             }
         }
-    ],
+    }
 
-    "event_masuk_lancar": [
-        { speaker: "Beryl", text: "Untungnya aku datang tepat waktu. Gerbang masih terbuka lebar." },
-        { speaker: "Alya", text: "Beryl, aku ke mading dulu ya mau liat pembagian kelas! Bye!" },
-        { speaker: "Beryl", text: "Alya melesat pergi. Aku berjalan santai menuju koridor utama." },
-        { jump: "chapter_1_selesai" }
-    ],
+    // --- GAMBAR (RENDERING) ---
+    function draw() {
+        // Bersihkan Layar
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    "event_ditangkap_osis": [
-        { speaker: "Beryl", text: "Sial... Gerbang sudah setengah tertutup. Pak Satpam sudah memegang gembok." },
-        { speaker: "Beryl", text: "Aku mencoba menyelinap lewat celah kecil..." },
-        { speaker: "???", text: "Ehem. Mau kemana, Mas?" },
-        { speaker: "Beryl", text: "Suara dingin yang menusuk tulang belakang. Matilah aku." },
-        { char: ASSETS.char_bella, speaker: "Bella", text: "Dasi tidak rapi. Datang jam 07:01. Kamu niat sekolah tidak?" },
-        { speaker: "Beryl", text: "Bella. Ketua OSIS legendaris yang konon tidak pernah tersenyum. Tatapannya setajam silet." },
-        { 
-            choice: [
-                { text: "Maaf kak, tadi macet... (Bohong)", target: "bella_marah" },
-                { text: "Saya kesiangan. Maaf. (Jujur)", target: "bella_netral" }
-            ] 
+        // Gambar Lapangan
+        // Garis Tengah
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(canvas.width/2, 0);
+        ctx.lineTo(canvas.width/2, canvas.height);
+        ctx.stroke();
+        
+        // Lingkaran Tengah
+        ctx.beginPath();
+        ctx.arc(canvas.width/2, canvas.height/2, 70, 0, Math.PI*2);
+        ctx.stroke();
+
+        // Gawang
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillRect(0, (canvas.height - GOAL_SIZE)/2, 5, GOAL_SIZE); // Kiri
+        ctx.fillRect(canvas.width-5, (canvas.height - GOAL_SIZE)/2, 5, GOAL_SIZE); // Kanan
+
+        // Gambar Bola
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, BALL_RADIUS, 0, Math.PI*2);
+        ctx.fillStyle = ball.color;
+        ctx.fill();
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Gambar Pemain
+        players.forEach(p => {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, PLAYER_RADIUS, 0, Math.PI*2);
+            ctx.fillStyle = p.color;
+            ctx.fill();
+            
+            // Highlight giliran
+            if ((isRedTurn && p.team === 'red') || (!isRedTurn && p.team === 'blue')) {
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = 'white';
+                ctx.stroke();
+            } else {
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'black';
+                ctx.stroke();
+            }
+        });
+
+        // Garis Drag (Aiming)
+        if (dragInfo.active && dragInfo.selectedPlayer) {
+            ctx.beginPath();
+            ctx.moveTo(dragInfo.selectedPlayer.x, dragInfo.selectedPlayer.y);
+            ctx.lineTo(dragInfo.currentX, dragInfo.currentY);
+            ctx.strokeStyle = 'yellow';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([5, 5]); // Garis putus-putus
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset
         }
-    ],
-
-    "bella_marah": [
-        { action: () => gameState.stats.bella -= 2 },
-        { speaker: "Bella", text: "Rumah kamu di Blok C kan? Jalan kaki cuma 10 menit. Jangan cari alasan klise." },
-        { speaker: "Beryl", text: "(Gila, dia tahu rumahku? Stalker?)" },
-        { speaker: "Bella", text: "Namamu dicatat. Lari keliling lapangan 3 kali nanti istirahat. Masuk!" },
-        { jump: "chapter_1_selesai" }
-    ],
-
-    "bella_netral": [
-        { action: () => { gameState.stats.bella += 1; gameState.flags.met_bella = true; } },
-        { speaker: "Bella", text: "Hmph. Setidaknya kamu jujur." },
-        { speaker: "Bella", text: "Kali ini saya ampuni karena hari pertama. Rapikan dasimu. Pergi." },
-        { speaker: "Beryl", text: "Dia memalingkan wajahnya. Apa aku salah lihat? Telinganya sedikit merah?" },
-        { jump: "chapter_1_selesai" }
-    ],
-
-    "chapter_1_selesai": [
-        { char: null, bg: "black", speaker: "", text: "--- CHAPTER 1 SELESAI ---" },
-        { speaker: "System", text: "Ini adalah akhir dari demo pacing lambat." },
-        { speaker: "System", text: "Untuk mencapai 30 menit, kamu tinggal copy-paste struktur ini dan tambahkan dialog sehari-hari." },
-        { choice: [{ text: "Ulangi dari awal", target: "start" }] }
-    ]
-};
-
-// --- ENGINE LOGIC (JANGAN UBAH BAGIAN INI KECUALI PAHAM) ---
-let currentRoute = [];
-let stepIndex = 0;
-
-function startGame() {
-    loadRoute("start");
-}
-
-function loadRoute(routeName) {
-    currentRoute = script[routeName];
-    stepIndex = 0;
-    renderStep();
-}
-
-function renderStep() {
-    if (stepIndex >= currentRoute.length) return;
-    
-    const step = currentRoute[stepIndex];
-
-    // Cek Logic Jump/Check
-    if (step.jump) { loadRoute(step.jump); return; }
-    if (step.check) { loadRoute(step.check()); return; }
-    if (step.action) { step.action(); stepIndex++; renderStep(); return; }
-
-    // Tampilkan Gambar
-    if (step.bg) document.getElementById('game-screen').style.backgroundImage = `url('${step.bg}')`;
-    
-    const charLayer = document.getElementById('char-layer');
-    if (step.char !== undefined) { // Cek undefined biar bisa null (hilangkan char)
-        charLayer.innerHTML = step.char ? `<img src="${step.char}" class="char-sprite">` : '';
     }
 
-    // Tampilkan Teks
-    if (step.choice) {
-        showChoices(step.choice);
-        document.getElementById('ui-layer').style.display = 'none'; // Sembunyikan teks saat milih
-    } else {
-        document.getElementById('ui-layer').style.display = 'flex';
-        document.getElementById('name-box').innerText = step.speaker || "???";
-        document.getElementById('name-box').style.display = step.speaker ? 'block' : 'none';
-        document.getElementById('text-box').innerText = step.text;
+    // --- GAMEPLAY FLOW ---
+
+    function switchTurn() {
+        isRedTurn = !isRedTurn;
+        updateTurnIndicator();
     }
-}
 
-function nextText() {
-    // Mencegah skip kalau lagi ada pilihan
-    if (currentRoute[stepIndex].choice) return;
+    function updateTurnIndicator() {
+        const el = document.getElementById('turn-text');
+        el.innerText = isRedTurn ? "TIM MERAH" : "TIM BIRU";
+        el.style.color = isRedTurn ? "#e74c3c" : "#3498db";
+    }
+
+    function handleGoal(scorer) {
+        scores[scorer]++;
+        document.getElementById('red-score').innerText = `MERAH: ${scores.red}`;
+        document.getElementById('blue-score').innerText = `BIRU: ${scores.blue}`;
+
+        // Efek Goal
+        alert("GOOOOOL " + scorer.toUpperCase() + "!");
+
+        if (scores[scorer] >= MAX_SCORE) {
+            endGame(scorer);
+        } else {
+            initPositions(); // Reset posisi
+            isMoving = false; // Paksa stop
+        }
+    }
+
+    function startCoinToss() {
+        const btn = document.querySelector('#toss-screen button');
+        const res = document.getElementById('toss-result');
+        btn.style.display = 'none';
+        
+        let count = 0;
+        let interval = setInterval(() => {
+            res.innerText = count % 2 === 0 ? "MERAH..." : "BIRU...";
+            count++;
+            if (count > 10) {
+                clearInterval(interval);
+                isRedTurn = Math.random() < 0.5;
+                res.innerText = isRedTurn ? "MERAH JALAN DULUAN!" : "BIRU JALAN DULUAN!";
+                
+                setTimeout(() => {
+                    document.getElementById('toss-screen').classList.add('hidden');
+                    initPositions();
+                    updateTurnIndicator();
+                    update(); // Mulai loop
+                }, 1500);
+            }
+        }, 100);
+    }
+
+    function endGame(winner) {
+        document.getElementById('game-over-screen').classList.remove('hidden');
+        document.getElementById('winner-text').innerText = (winner === 'red' ? "MERAH" : "BIRU") + " MENANG!";
+    }
+
+    function resetGame() {
+        scores.red = 0;
+        scores.blue = 0;
+        document.getElementById('red-score').innerText = `MERAH: 0`;
+        document.getElementById('blue-score').innerText = `BIRU: 0`;
+        document.getElementById('game-over-screen').classList.add('hidden');
+        document.getElementById('toss-screen').classList.remove('hidden');
+        document.querySelector('#toss-screen button').style.display = 'block';
+        document.getElementById('toss-result').innerText = "Siapa yang jalan duluan?";
+    }
+
+    // --- INPUT HANDLER (MOUSE & TOUCH) ---
     
-    stepIndex++;
-    renderStep();
-}
+    canvas.addEventListener('mousedown', startDrag);
+    canvas.addEventListener('mousemove', moveDrag);
+    window.addEventListener('mouseup', endDrag);
+    
+    canvas.addEventListener('touchstart', (e) => startDrag(e.touches[0]));
+    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); moveDrag(e.touches[0]); }, {passive: false});
+    window.addEventListener('touchend', endDrag);
 
-function showChoices(choices) {
-    const overlay = document.getElementById('choice-overlay');
-    overlay.innerHTML = "";
-    overlay.style.display = "flex";
-
-    choices.forEach(c => {
-        const btn = document.createElement("button");
-        btn.className = "choice-btn";
-        btn.innerText = c.text;
-        btn.onclick = () => {
-            overlay.style.display = "none";
-            loadRoute(c.target);
+    function getMousePos(e) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+            x: (e.clientX - rect.left) * (canvas.width / rect.width),
+            y: (e.clientY - rect.top) * (canvas.height / rect.height)
         };
-        overlay.appendChild(btn);
-    });
-}
-
-// Keyboard control (Spasi untuk lanjut)
-document.addEventListener('keydown', function(event) {
-    if (event.code === 'Space') {
-        nextText();
     }
-});
 
-// Start
-startGame();
+    function startDrag(e) {
+        if (isMoving) return; // Gak boleh gerak kalau bola masih jalan
+
+        let pos = getMousePos(e);
+        
+        // Cek apakah klik di atas pemain tim sendiri
+        players.forEach(p => {
+            let dist = Math.hypot(pos.x - p.x, pos.y - p.y);
+            if (dist < PLAYER_RADIUS) {
+                // Validasi Giliran
+                if ((isRedTurn && p.team === 'red') || (!isRedTurn && p.team === 'blue')) {
+                    dragInfo.active = true;
+                    dragInfo.startX = p.x;
+                    dragInfo.startY = p.y;
+                    dragInfo.currentX = p.x;
+                    dragInfo.currentY = p.y;
+                    dragInfo.selectedPlayer = p;
+                }
+            }
+        });
+    }
+
+    function moveDrag(e) {
+        if (!dragInfo.active) return;
+        let pos = getMousePos(e);
+        dragInfo.currentX = pos.x;
+        dragInfo.currentY = pos.y;
+    }
+
+    function endDrag() {
+        if (!dragInfo.active) return;
+
+        // Hitung vektor tembakan (Kebalikan dari arah tarikan)
+        let dx = dragInfo.startX - dragInfo.currentX;
+        let dy = dragInfo.startY - dragInfo.currentY;
+        
+        // Batasi power biar gak teleport
+        let power = Math.min(Math.hypot(dx, dy), 150) * 0.15;
+        let angle = Math.atan2(dy, dx);
+
+        // Terapkan velocity ke pemain
+        dragInfo.selectedPlayer.vx = Math.cos(angle) * power;
+        dragInfo.selectedPlayer.vy = Math.sin(angle) * power;
+
+        dragInfo.active = false;
+        dragInfo.selectedPlayer = null;
+        
+        // Trigger phase bergerak
+        isMoving = true; 
+    }
 
 </script>
 </body>
